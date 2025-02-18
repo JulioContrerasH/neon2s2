@@ -210,9 +210,10 @@ for i, row in table.iterrows():
 
 
 
-###################################
-## Download images with equigrid ##
-###################################
+
+##########################################
+## Generate tables for neon to equigrid ##
+##########################################
 import geopandas as gpd
 import pandas as pd
 from shapely.geometry import Point
@@ -225,7 +226,7 @@ def get_utm_epsg(lat, lon):
 
 polygons = gpd.read_file("tables/intersection.gpkg", layer="poligonos")
 points = gpd.read_file("equigrid/NA.gpkg")
-columns_to_drop = ["utm", "lon", "lat", "utm_x", "utm_y", "mgrs_tiles", "ntiles"]
+columns_to_drop = ["mgrs_tiles", "ntiles"] # "lon", "lat", "utm", "utm_x", "utm_y"
 points = points.drop(columns=columns_to_drop)
 
 if polygons.crs != points.crs:
@@ -265,6 +266,194 @@ final_table = pd.concat(tables, ignore_index=True)
 final_table.to_file("tables/neon_equigrid_geodata.gpkg", layer="neon_equigrid_geodata", driver="GPKG")
 
 
+
+####################
+## Generate Stats ##
+####################
+
+
+
+###################################
+## Download images with equigrid ##
+###################################
+
+from cubexpress import RasterTransform, RasterTransformSet
+import cubexpress
+import pandas as pd
+import re
+import pathlib
+import geopandas as gpd
+
+import ee
+ee.Initialize()
+
+# Load the table
+table_path = "tables/neon_equigrid_geodata.gpkg"
+table = gpd.read_file(table_path)
+
+
+table.columns
+
+bands_neon = [f"B{str(i).zfill(3)}" for i in range(1, 427)]
+# bands_s2 = ["B2", "B3", "B4"]
+bands_s2 = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B9", "B10", "B11", "B12"]
+
+# Download the images
+for i, row in table.iterrows():
+    # break
+    x_centroid = row["e7g_x"]
+    y_centroid = row["e7g_y"]
+    xmin = x_centroid - 5120/2
+    ymax = y_centroid + 5120/2
+    # break
+    raster_transform = RasterTransform(
+        crs='PROJCS["WGS 84 / Equi7 North America",GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4326"]],PROJECTION["Azimuthal_Equidistant"],PARAMETER["latitude_of_center",52],PARAMETER["longitude_of_center",-97.5],PARAMETER["false_easting",8264722.177],PARAMETER["false_northing",4867518.353],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],AUTHORITY["EPSG","27705"]]',
+        geotransform = dict(
+            scaleX=10,
+            shearX=0,
+            translateX=xmin,
+            scaleY=-10,
+            shearY=0,
+            translateY=ymax
+        ), 
+        width=512, 
+        height=512
+    )
+    raster_transform_set = RasterTransformSet(rastertransformset = [raster_transform])
+
+    table_manifest = cubexpress.dataframe_manifest(
+        geometadatas=raster_transform_set, 
+        bands=bands_s2, 
+        image=row["sentinel2_id"],
+    )
+    cubexpress.getCube(table_manifest, nworkers=4, deep_level=5, output_path="s2_try")
+    break
+
+
+table_manifest.manifest[0]
+
+row["image_id_sentinel2"]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###########################
+## Download as PNG files ##
+###########################
+
+from cubexpress import RasterTransform, RasterTransformSet
+import cubexpress
+import pandas as pd
+import re
+import pathlib
+import geopandas as gpd
+import numpy as np
+import io
+from PIL import Image
+
+import ee
+ee.Initialize()
+
+# Load the table of images positions
+table_path = "tables/neon_equigrid_geodata.gpkg"
+table = gpd.read_file(table_path)
+bands_neon = [f"B{str(i).zfill(3)}" for i in range(1, 427)]
+bands_s2 = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B9", "B10", "B11", "B12"]
+
+
+# Load the table of weights
+table_path_norm = "tables/S2toAVIRIS_norm.csv"
+df_s2_aviris_norm = pd.read_csv(table_path_norm)
+band_indices = {band: df_s2_aviris_norm[df_s2_aviris_norm[band].notnull()].index.to_list()
+                for band in bands_s2}
+
+
+output_dir = pathlib.Path("neon_try")
+output_dir.mkdir(parents=True, exist_ok=True)
+
+# Download the images
+for i, row in table.iterrows():
+
+    ###########################
+    ## Processing image neon ##
+    ###########################
+    neon_id = row["image_id_neon"]
+    neon_img = ee.Image(neon_id)
+    s2_alike_bands = {} # Crear diccionario para almacenar las bandas generadas
+    for band in bands_s2:
+
+        indices = band_indices[band] 
+        weights = df_s2_aviris_norm.loc[indices, band].values  # Pesos de convolución
+        neon_band_names = [f"B{str(i + 1).zfill(3)}" for i in indices]
+        expression = " + ".join([f"{w} * b{i+1}" for i, w in zip(indices, weights)])
+
+        # Evaluar la expresión usando las bandas de NEON
+        s2_alike_band = neon_img.expression(expression, {
+            f'b{i+1}': neon_img.select(f"B{str(i + 1).zfill(3)}") for i in indices
+        })
+        s2_alike_bands[band] = s2_alike_band
+
+    s2_alike_image = ee.Image(list(s2_alike_bands.values())).rename(list(bands_s2))
+
+    translateX = row["utm_x"] - 5120 / 2
+    translateY = row["utm_y"] + 5120 / 2
+    
+    request = {
+        "expression": s2_alike_image,
+        "fileFormat": "PNG",
+        "bandIds": ["B4", "B3", "B2"],
+        "grid": {
+            "dimensions": {
+                "width": 512,
+                "height": 512,
+            },
+        "affineTransform": {
+            "scaleX": 10,
+            "shearX": 0,
+            "translateX": translateX,
+            "shearY": 0,
+            "scaleY": -10,
+            "translateY": translateY,
+            },
+        "crsCode": row["utm"],
+        },
+        'visualizationOptions': {'ranges': [{'min': 0, 'max': 3000}]}
+    }
+
+    filename = row["image_id_neon"].replace("/", "__") + ".png"
+    output_path = output_dir / filename
+
+    image_byte = io.BytesIO(bytes(ee.data.computePixels(request)))
+    image_array = np.array(Image.open(image_byte))
+    img = Image.fromarray(image_array)
+    img.save(output_path, format="PNG")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ###############################
 ## Convolution of NEON to S2 ##
 ###############################
@@ -276,17 +465,13 @@ import glob
 
 # Rutas de archivos
 
-
 table_path = "/home/contreras/Documents/GitHub/NEON/tables/S2toAVIRIS_norm.csv"
-
 df_s2_aviris_norm = pd.read_csv(table_path)
-
-sentinel_bands = df_s2_aviris_norm.columns[2:] 
+sentinel_bands = df_s2_aviris_norm.columns[2:] # Delete index and band columns
 
 # Crear un diccionario con los índices de bandas NEON que corresponden a cada banda Sentinel-2
 band_indices = {band: df_s2_aviris_norm[df_s2_aviris_norm[band].notnull()].index.to_list()
                 for band in sentinel_bands}
-
 
 # Listar tif glob 
 neon_images = glob.glob("neon_images/intersections/neon/*.tif")
@@ -324,5 +509,8 @@ for j, neon_image_path in enumerate(neon_images):
         dst.write(s2_alike_img)
 
     print(f"Imagen Sentinel-2 generada: {neon_images_s2[j]}")
+
+
+
 
 
