@@ -117,3 +117,33 @@ ax_zoom.set_title("Zoom en bandas 200-250", fontsize=10)
 mark_inset(ax, ax_zoom, loc1=2, loc2=4, fc="none", ec="red", linestyle="--")
 
 plt.show()
+
+
+
+####################
+## Ver si son GAO ##
+####################
+import ee
+
+# Inicializar Earth Engine
+ee.Initialize()
+
+# Crear una lista para almacenar las imágenes
+images = []
+
+# Iterar sobre cada fila del DataFrame
+for i, row in gao_table.iterrows():
+    image = ee.Image(row["image_id_neon"])
+    images.append(image)
+
+# Crear una ImageCollection a partir de la lista de imágenes
+image_collection = ee.ImageCollection(images)
+
+# Extraer la propiedad SENSOR_ID para cada imagen
+sensor_ids = image_collection.aggregate_array("SENSOR_ID")
+
+# Obtener la lista de SENSOR_ID
+sensor_ids_list = sensor_ids.getInfo()
+
+# Imprimir los resultados
+print("Lista de SENSOR_IDs:", sensor_ids_list)
