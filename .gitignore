@@ -5,3 +5,5 @@ neon_images
 equigrid
 geometries
 comparative
+output_sentinel2/
+output_sentinel/

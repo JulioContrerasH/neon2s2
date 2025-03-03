@@ -1,4 +1,3 @@
-import numpy as np
 from typing import Callable
 import pandas as pd
 import ee
@@ -172,11 +171,8 @@ def generate_s2_image_from_neon(neon_id_image: str, s2_id_image: str) -> ee.Imag
         one_band_img = generate_s2_band_from_neon(spectral_data.image, spectral_data.s2_table, band, spectral_data.get_wavelengths(), spectral_data.bands_neon_ee_select)
         final_bands.append(one_band_img)
         print(f"Generated band {band}")
-    # print(final_bands)
 
     final_s2_like_image = ee.Image(final_bands).rename(list(spectral_data.bands_s2))
-    
-    # final_s2_like_image = ee.Image.cat(final_bands)
 
     return final_s2_like_image
 
@@ -328,11 +324,6 @@ for i, row in table.iterrows():
 # Proccess NEON with the second way
 # --------------------------------------
 
-# neon_id_image = 'projects/neon-prod-earthengine/assets/HSI_REFL/001/2016_HARV_3'
-# s2_id_image = 'COPERNICUS/S2_HARMONIZED/20160816T153912_20160816T154443_T18TYN'
-
-# # Generate the Sentinel-2-like image from NEON
-# final_s2_like_image = generate_s2_image_from_neon(neon_id_image, s2_id_image)
 
 for i, row in table.iterrows():
 

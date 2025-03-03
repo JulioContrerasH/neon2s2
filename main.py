@@ -19,6 +19,7 @@ from shapely.geometry import shape
 # df["image_id_sentinel2"] = df["Collection_Sentinel"] + "/" + df["ID_SENTINEL2"]
 # df = df.reset_index(drop=True)
 df = pd.read_csv('tables/neon_s2_union.csv')
+
 df.columns
 df["image_id_neon"] = df["Collection_NEON"] + "/" + df["ID_NEON"]
 df["image_id_sentinel2"] = df["Collection_Sentinel"] + "/" + df["ID_SENTINEL2"]
@@ -207,8 +208,6 @@ for i, row in table.iterrows():
         image=row["sentinel2_id"],
     )
     cubexpress.getCube(table_manifest, nworkers=4, deep_level=5, output_path="neon_images")
-
-
 
 
 ##########################################
