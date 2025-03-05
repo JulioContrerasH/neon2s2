@@ -27,11 +27,8 @@ dates = refL002WithInfo.aggregate_array('date')
 
 dates.getInfo()
 
-
-
 geometries = refL002WithInfo.aggregate_array('geometry')
 neon_ids = refL002WithInfo.aggregate_array('system:index')
-
 
 
 # Función para buscar coincidencias en Sentinel 2

@@ -7,3 +7,6 @@ geometries
 comparative
 output_sentinel2/
 output_sentinel/
+vs/
+output_neon_like_s2/
+output_s2/

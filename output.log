@@ -1,0 +1,30 @@
+nohup: ignoring input
+Traceback (most recent call last):
+  File "/home/contreras/anaconda3/envs/deep/lib/python3.12/site-packages/cubexpress/download.py", line 338, in getcube
+    for future in concurrent.futures.as_completed(futures):
+  File "/home/contreras/anaconda3/envs/deep/lib/python3.12/concurrent/futures/_base.py", line 243, in as_completed
+    waiter.event.wait(wait_timeout)
+  File "/home/contreras/anaconda3/envs/deep/lib/python3.12/threading.py", line 655, in wait
+    signaled = self._cond.wait(timeout)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/contreras/anaconda3/envs/deep/lib/python3.12/threading.py", line 355, in wait
+    waiter.acquire()
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/contreras/Documents/GitHub/NEON/main_final_download_s2.py", line 42, in <module>
+    cubexpress.getcube(
+  File "/home/contreras/anaconda3/envs/deep/lib/python3.12/site-packages/cubexpress/download.py", line 331, in getcube
+    with ThreadPoolExecutor(max_workers=nworkers) as executor:
+  File "/home/contreras/anaconda3/envs/deep/lib/python3.12/concurrent/futures/_base.py", line 647, in __exit__
+    self.shutdown(wait=True)
+  File "/home/contreras/anaconda3/envs/deep/lib/python3.12/concurrent/futures/thread.py", line 238, in shutdown
+    t.join()
+  File "/home/contreras/anaconda3/envs/deep/lib/python3.12/threading.py", line 1147, in join
+    self._wait_for_tstate_lock()
+  File "/home/contreras/anaconda3/envs/deep/lib/python3.12/threading.py", line 1167, in _wait_for_tstate_lock
+    if lock.acquire(block, timeout):
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
