@@ -448,10 +448,6 @@ def create_interp1d(
     return _interpolator
 
 
-s2_table = pd.read_csv("https://raw.githubusercontent.com/JulioContrerasH/neon2s2/refs/heads/main/tables/srf_s2a.csv")
-
-
-
 # Generalized function to generate S2 band from NEON
 def generate_s2_band_from_neon(image_neon: ee.Image, s2_table: pd.DataFrame, band_name_s2: str, wave_neon: ee.List, bands_neon_ee_select: ee.List) -> ee.Image:
     """
@@ -535,9 +531,7 @@ def generate_s2_image_from_neon(neon_id_image: str, s2_id_image: str) -> ee.Imag
 # -----------------------------------------------------------------------------------------
 
 table = pd.read_csv("tables/images_neon_s2_final_pairs.csv")
-
-image = ee.Image(row.sentinel2_id)
-image.get("SPACECRAFT_NAME").getInfo()
+table = table.iloc[5:]
 
 for i, row in table.iterrows():
 
@@ -585,9 +579,6 @@ for i, row in table.iterrows():
 
 
 table = pd.read_csv("tables/images_neon_s2_final_pairs.csv")
-
-
-
 
 for i, row in table.iterrows():
 

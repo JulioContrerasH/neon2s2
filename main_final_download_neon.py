@@ -76,16 +76,20 @@ def interpolate_one_x(segments: ee.List, xq: ee.Number) -> ee.Number:
     )
     return ee.List(candidates).removeAll([None]).get(0)
 
-def linear_interpolation(x_values: ee.List, y_values: ee.List, x_query: ee.List) -> ee.List:
+def linear_interpolation(
+        x_values: ee.List, 
+        y_values: ee.List, 
+        x_query: ee.List
+    ) -> ee.List:
     segs = prepare_segments(x_values, y_values)
     result = x_query.map(lambda xq: interpolate_one_x(segs, ee.Number(xq)))
     return result
 
 def create_interp1d(
-    x_values: ee.List,
-    y_values: ee.List,
-    kind: str = 'linear'
-) -> Callable[[ee.List], ee.List]:
+        x_values: ee.List,
+        y_values: ee.List,
+        kind: str = 'linear'
+    ) -> Callable[[ee.List], ee.List]:
     if kind != 'linear':
         raise ValueError("Only 'linear' supported.")
     def _interpolator(x_query: ee.List) -> ee.List:
@@ -94,7 +98,13 @@ def create_interp1d(
 
 
 # Generalized function to generate S2 band from NEON
-def generate_s2_band_from_neon(image_neon: ee.Image, s2_table: pd.DataFrame, band_name_s2: str, wave_neon: ee.List, bands_neon_ee_select: ee.List) -> ee.Image:
+def generate_s2_band_from_neon(
+        image_neon: ee.Image, 
+        s2_table: pd.DataFrame, 
+        band_name_s2: str, 
+        wave_neon: ee.List, 
+        bands_neon_ee_select: ee.List
+    ) -> ee.Image:
     """
     Generate one band from NEON using interpolation and Sentinel-2 SRF from the table.
     """
@@ -176,6 +186,7 @@ def generate_s2_image_from_neon(neon_id_image: str, s2_id_image: str) -> ee.Imag
 # -----------------------------------------------------------------------------------------
 
 table = pd.read_csv("tables/images_neon_s2_final_pairs.csv")
+table = table.iloc[67:]
 
 for i, row in table.iterrows():
 
